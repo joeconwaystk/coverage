@@ -36,11 +36,11 @@ Future<Map<String, dynamic>> collect(
       outputSink?.writeln("Tests complete.");
     }
 
-    return await _getAllCoverage(vmService, outputSink: outputSink);
+    return await _getAllCoverage(vmService, resume: resume, outputSink: outputSink);
   } finally {
-    if (resume) {
-      await _resumeIsolates(vmService, outputSink: outputSink);
-    }
+//    if (resume) {
+//      await _resumeIsolates(vmService, outputSink: outputSink);
+//    }
     outputSink?.writeln("Closing VM service.");
     await vmService.close();
     outputSink?.writeln("VM service closed.");
@@ -48,7 +48,7 @@ Future<Map<String, dynamic>> collect(
 }
 
 Future<Map<String, dynamic>> _getAllCoverage(VMServiceClient service,
-    {StringSink outputSink}) async {
+    {bool resume: true, StringSink outputSink}) async {
   var vm = await service.getVM();
   var allCoverage = <Map<String, dynamic>>[];
 
@@ -61,9 +61,12 @@ Future<Map<String, dynamic>> _getAllCoverage(VMServiceClient service,
     var report = await isolate.getSourceReport(forceCompile: true);
     var coverage = await _getCoverageJson(service, report);
     allCoverage.addAll(coverage);
-    outputSink?.writeln(
-        "Coverage collected for ${isolateRef.name}, resuming termination.");
-    await isolateRef.resume();
+
+    if (resume) {
+      outputSink?.writeln(
+          "Coverage collected for ${isolateRef.name}, resuming termination.");
+      await isolateRef.resume();
+    }
     counter++;
   }
   return <String, dynamic>{'type': 'CodeCoverage', 'coverage': allCoverage};
